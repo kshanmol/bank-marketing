@@ -85,7 +85,7 @@ def process(file_name_string):
 			f.write(",".join(map(str, item)) + '\n')
 
 def main():
-	process('bank.csv')
+	process('bank-full.csv')
 
 if __name__ == '__main__':
 	main()
