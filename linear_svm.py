@@ -88,7 +88,7 @@ if __name__ == '__main__':
 
 	random.seed(CONST_RANDOM_SEED)
 
-	file_name = os.path.join(os.path.dirname(__file__), 'data/'+ 'transformed-bank.csv')
+	file_name = os.path.join(os.path.dirname(__file__), 'data/'+ 'transformed-bank-full.csv')
 
 	x, y = get_data.process(file_name)
 
@@ -97,7 +97,7 @@ if __name__ == '__main__':
 	# print len(train_data[0]), len(test_data[0])
 	scaler, classifier = FitModel(train_data, train_labels)
 
-	# # print classifier
-	# TestModel(test_data, test_labels, scaler, classifier)
+	# print classifier
+	TestModel(test_data, test_labels, scaler, classifier)
 
 	roc_statistics(test_data, test_labels, scaler, classifier)
