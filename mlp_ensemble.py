@@ -28,15 +28,16 @@ def FitModel(train_data, train_labels, cross_val_splits = 5, random_seed = CONST
 
 	if do_grid_search:
 		param_grid = [ {# 'alpha': map(lambda x: (10 ** x), range(-1,0)),
-						'solver': ['adam'],
-						'hidden_layer_sizes':[(6,6), (11,11)],
-						'activation': ['relu'],
-						'learning_rate_init':[0.01, 0.1, 1],
-						'random_state':[random_seed],
-						'early_stopping':[True],
+						'base_estimator__activation': ['relu'],
+						'base_estimator__solver': ['adam'],
+						'base_estimator__hidden_layer_sizes':[(6,6), (11,11)],
+						'base_estimator__learning_rate_init':[0.1, 1],
+						'base_estimator__random_state':[random_seed],
+						'base_estimator__early_stopping':[True],
+						'n_estimators':[7],
+						'random_state':[random_seed]
 		}]
-
-		clf = GridSearchCV(estimator = MLPClassifier(), param_grid = param_grid, cv = cross_val_splits)
+		clf = GridSearchCV(estimator = BaggingClassifier(MLPClassifier()), param_grid = param_grid, cv = cross_val_splits)
 		clf.fit(train_data, train_labels)
 	
 		means = clf.cv_results_['mean_test_score']
@@ -47,19 +48,19 @@ def FitModel(train_data, train_labels, cross_val_splits = 5, random_seed = CONST
 		optimal_params = clf.best_params_
 		print optimal_params
 
-		clf = MLPClassifier(**optimal_params)
-		clf.fit(train_data, train_labels)
-		joblib.dump(clf, './models/mlp.model')
-
+		bagging = clf.best_estimator_
+		bagging.fit(train_data, train_labels)
+		joblib.dump(bagging, './models/mlp_ensemble.model')
 	else:
 		if(retrain):
 			clf = MLPClassifier(activation = 'relu', solver='lbfgs', hidden_layer_sizes=(11,11), learning_rate_init = 0.1, random_state = random_seed)
-			clf.fit(train_data, train_labels)
-			joblib.dump(clf, './models/mlp.model')
+			bagging = BaggingClassifier(clf, n_estimators = 7, random_state = random_seed)
+			bagging.fit(train_data, train_labels)
+			joblib.dump(clf, './models/mlp_ensemble.model')
 		else:
-			clf = joblib.load('./models/mlp.model')
+			bagging = joblib.load('./models/mlp_ensemble.model')
 
-	return scaler, clf
+	return scaler, bagging
 
 def TestModel(test_data, test_labels, scaler, model):
 
