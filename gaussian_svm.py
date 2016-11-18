@@ -5,7 +5,7 @@ import os
 
 from sklearn.model_selection import GridSearchCV
 from sklearn.preprocessing import StandardScaler
-from sklearn.svm import LinearSVC
+from sklearn.svm import SVC
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import roc_curve, auc, roc_auc_score
 
@@ -25,8 +25,8 @@ def FitModel(train_data, train_labels, cross_val_splits = 5, random_seed = CONST
 
 	# # if using SVC
 	# param_grid = [
-	# 	{'C': map(lambda x: 2 ** x, range(5, 10)), 'kernel': ['rbf'], 
-	# 		'gamma': map(lambda x: 2 ** x, range(-10, -5)), 'epsilon': map(lambda x: 2 ** x, range(-5, 0))}
+	# 	{'C': map(lambda x: 2 ** x, range(0, 8)), 'kernel': ['rbf'], 
+	# 		'gamma': map(lambda x: 2 ** x, range(-14, -4))}
 	# ]
 
 	# # if using LinearSVC
@@ -35,19 +35,20 @@ def FitModel(train_data, train_labels, cross_val_splits = 5, random_seed = CONST
 	# 		'dual': [False], 'random_state': [random_seed], 'loss': ['squared_hinge']}
 	# ]
 
-	# best_classifier = GridSearchCV(estimator = LinearSVC(), param_grid = param_grid, cv = cross_val_splits)
+	# best_classifier = GridSearchCV(estimator = SVC(), param_grid = param_grid, cv = cross_val_splits)
 	# best_classifier.fit(train_data, train_labels)
 
-	# C = map(lambda x: 2 ** x, range(-5, 5))
-	# for i in range(len(C)):
-	# 	print C[i], best_classifier.cv_results_['mean_train_score'][i], best_classifier.cv_results_['mean_test_score'][i]
+	# print best_classifier.cv_results_['param_gamma']
+	# print best_classifier.cv_results_['param_C']
+	# print best_classifier.cv_results_['mean_train_score']
+	# print best_classifier.cv_results_['mean_test_score']
 	
 	# opt_hyperparameters = best_classifier.best_params_
 	# print opt_hyperparameters
 
-	opt_hyperparameters = {'loss': 'squared_hinge', 'C': 0.5, 'max_iter': 1000, 'random_state': 42, 'dual': False}
+	opt_hyperparameters = {'kernel': 'rbf', 'C': 32, 'gamma': 0.0009765625}
 
-	classifier = LinearSVC(**opt_hyperparameters)
+	classifier = SVC(**opt_hyperparameters)
 	classifier.fit(train_data, train_labels)
 
 	return scaler, classifier
