@@ -12,11 +12,31 @@ from sklearn.model_selection import GridSearchCV
 from sklearn.preprocessing import StandardScaler
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import roc_curve, auc, roc_auc_score
+from sklearn.cross_validation import KFold
 
 import numpy as np
 import matplotlib.pyplot as plt
 
 CONST_RANDOM_SEED = 42
+
+def plot_confusion_matrix(cf_mat, classes, title):
+
+    plt.imshow(cf_mat, interpolation='nearest', cmap=plt.cm.Reds)
+    plt.title(title)
+    plt.colorbar()
+    tick_marks = np.arange(len(classes))
+    plt.xticks(tick_marks, classes)
+    plt.yticks(tick_marks, classes)
+
+    thr = cf_mat.max() / 2.
+    for i in range(cf_mat.shape[0]):
+    	for j in range(cf_mat.shape[1]):
+	        plt.text(j, i, cf_mat[i, j], horizontalalignment="center", color="white" if cf_mat[i, j] > thr else "black")
+    
+    plt.tight_layout()
+    plt.ylabel('True label')
+    plt.xlabel('Predicted label')
+
 
 def FitModel(train_data, train_labels, cross_val_splits = 5, random_seed = CONST_RANDOM_SEED, max_iter = 1000, do_grid_search = False, retrain = False):
 
@@ -24,19 +44,20 @@ def FitModel(train_data, train_labels, cross_val_splits = 5, random_seed = CONST
 	train_data = scaler.transform(train_data)
 
 	retrain = True
-	do_grid_search = True
+	do_grid_search = False
 
 	if do_grid_search:
 		param_grid = [ {# 'alpha': map(lambda x: (10 ** x), range(-1,0)),
-						'solver': ['adam'],
-						'hidden_layer_sizes':[(6,6), (11,11)],
+						'solver': ['sgd'],
+						'hidden_layer_sizes':[(6), (11), (6,6), (11,11)],
 						'activation': ['relu'],
-						'learning_rate_init':[0.01, 0.1, 1],
+						'learning_rate_init':[0.1],
 						'random_state':[random_seed],
-						'early_stopping':[True],
+						'learning_rate':['adaptive'],
+						'early_stopping':[False],
 		}]
 
-		clf = GridSearchCV(estimator = MLPClassifier(), param_grid = param_grid, cv = cross_val_splits)
+		clf = GridSearchCV(estimator = MLPClassifier(), param_grid = param_grid, cv = cross_val_splits, scoring = 'roc_auc')
 		clf.fit(train_data, train_labels)
 	
 		means = clf.cv_results_['mean_test_score']
@@ -53,7 +74,8 @@ def FitModel(train_data, train_labels, cross_val_splits = 5, random_seed = CONST
 
 	else:
 		if(retrain):
-			clf = MLPClassifier(activation = 'relu', solver='lbfgs', hidden_layer_sizes=(11,11), learning_rate_init = 0.1, random_state = random_seed)
+			opt_hyperparameters = {'hidden_layer_sizes': (11,11), 'activation': 'relu', 'solver': 'sgd', 'random_state': 42, 'early_stopping': False, 'learning_rate': 'adaptive', 'learning_rate_init': 0.1}
+			clf = MLPClassifier(**opt_hyperparameters)
 			clf.fit(train_data, train_labels)
 			joblib.dump(clf, './models/mlp.model')
 		else:
@@ -69,17 +91,114 @@ def TestModel(test_data, test_labels, scaler, model):
 
 	print "Accuracy :", accuracy 
 
-	# cf_mat = np.array(confusion_matrix(y_test, predicted))
-	# print 'Confusion matrix:'
-	# print cf_mat
+	predicted = model.predict(test_data)
+	cf_mat = np.array(confusion_matrix(test_labels, predicted))
+	print 'Confusion matrix:'
+	print cf_mat
 
-	# class_names = range(0,10)
-	# title = 'Confusion Matrix (Learning rate = ' + str(lr) + ')'
-	# plt.figure()
-	# plot_confusion_matrix(cf_mat, class_names, title)	
-	# plt.show()
+	class_names = ['no', 'yes']
+	title = 'Confusion Matrix - Single MLP'
+	plt.figure()
+	plot_confusion_matrix(cf_mat, class_names, title)	
+	plt.show()
 
 	return accuracy
+
+def plot_learning_curves(data, labels, n_folds = 5, random_seed = CONST_RANDOM_SEED):
+	data_perc, train_scores, cv_scores = [], [], []
+
+	train_percs = map(lambda x: 2 ** x, range(-2, 7, 1))
+	train_percs.append(100)
+
+	for train_data_perc in train_percs:
+		cv_score, train_score = 0, 0
+		train_data = data[: int(len(data) * train_data_perc) / 100]
+		train_labels = labels[: int(len(labels) * train_data_perc) / 100]
+
+		scaler = StandardScaler(); scaler.fit(train_data)
+		train_data = scaler.transform(train_data)
+
+		kf = KFold(len(train_data), n_folds = n_folds, shuffle = True, random_state = random_seed)
+
+		train_data, train_labels = np.asarray(train_data), np.asarray(train_labels)
+		for train_index, test_index in kf:
+			X_train, X_test = train_data[train_index], train_data[test_index]
+			y_train, y_test = train_labels[train_index], train_labels[test_index]
+
+			# opt_hyperparameters = {'loss': 'squared_hinge', 'C': 0.5, 'max_iter': 1000, 'random_state': 42, 'dual': False}
+			opt_hyperparameters = {'hidden_layer_sizes': (11,11), 'activation': 'relu', 'solver': 'sgd', 'random_state': 42, 'early_stopping': False, 'learning_rate': 'adaptive', 'learning_rate_init': 0.1}
+			classifier = MLPClassifier(**opt_hyperparameters)
+			classifier.fit(X_train, y_train)
+
+			train_score += classifier.score(X_train, y_train)
+			cv_score += classifier.score(X_test, y_test)
+
+		cv_score /= n_folds
+		train_score /= n_folds
+		print train_data_perc
+		print cv_score, train_score
+		data_perc.append(train_data_perc)
+		cv_scores.append(cv_score)
+		train_scores.append(train_score)
+
+	cv_scores = map(lambda x: 1 - x, cv_scores)
+	train_scores = map(lambda x: 1 - x, train_scores)
+
+	plt.figure()
+	plt.plot(data_perc, cv_scores, label = "CV-Error")
+	plt.plot(data_perc, train_scores, label = "Training Error")
+	plt.ylim([0.0, 0.2])
+	plt.xlabel('Training Data Percentage')
+	plt.ylabel('Classification Error')
+	plt.title('Learning Curve')
+	plt.legend(loc = 'lower right')
+	plt.show()
+
+
+def plot_learning_curves_AUC(data, labels, n_folds = 5, random_seed = CONST_RANDOM_SEED):
+	data_perc, train_scores, cv_scores = [], [], []
+
+	train_percs = map(lambda x: 2 ** x, range(-2, 7, 1))
+	train_percs.append(100)
+
+	for train_data_perc in train_percs:
+		cv_score, train_score = 0, 0
+		train_data = data[: int(len(data) * train_data_perc) / 100]
+		train_labels = labels[: int(len(labels) * train_data_perc) / 100]
+
+		scaler = StandardScaler(); scaler.fit(train_data)
+		train_data = scaler.transform(train_data)
+
+		kf = KFold(len(train_data), n_folds = n_folds, shuffle = True, random_state = random_seed)
+
+		train_data, train_labels = np.asarray(train_data), np.asarray(train_labels)
+		for train_index, test_index in kf:
+			X_train, X_test = train_data[train_index], train_data[test_index]
+			y_train, y_test = train_labels[train_index], train_labels[test_index]
+
+			opt_hyperparameters = {'hidden_layer_sizes': (11,11), 'activation': 'relu', 'solver': 'sgd', 'random_state': 42, 'early_stopping': False, 'learning_rate': 'adaptive', 'learning_rate_init': 0.1}
+			classifier = MLPClassifier(**opt_hyperparameters)
+			classifier.fit(X_train, y_train)
+
+			train_score += roc_auc_score(y_train, classifier.predict_proba(X_train)[:,1])
+			cv_score += roc_auc_score(y_test, classifier.predict_proba(X_test)[:,1])
+
+		cv_score /= n_folds
+		train_score /= n_folds
+		print cv_score, train_score
+		data_perc.append(train_data_perc)
+		cv_scores.append(cv_score)
+		train_scores.append(train_score)
+
+	plt.figure()
+	plt.plot(data_perc, cv_scores, label = "CV AUROC")
+	plt.plot(data_perc, train_scores, label = "Training AUROC")
+	plt.ylim([0.75, 1.0])
+	plt.xlabel('Training Data Percentage')
+	plt.ylabel('AUROC')
+	plt.title('Learning Curve')
+	plt.legend(loc = 'lower right')
+	plt.show()
 
 def roc_statistics(test_data, test_labels, scaler, model):
 
@@ -88,8 +207,11 @@ def roc_statistics(test_data, test_labels, scaler, model):
 	fpr, tpr, thresholds = roc_curve(test_labels, model.predict_proba(test_data)[:,1])
 
 	# print "AUROC:", auc(fpr, tpr)
-	print "ROC AUC SCORE: ", roc_auc_score(test_labels, model.predict_proba(test_data)[:,1])
+#	print "ROC AUC SCORE: ", roc_auc_score(test_labels, model.predict_proba(test_data)[:,1])
 	
+	print fpr.tolist()
+	print tpr.tolist()
+
 	plt.figure()
 	plt.plot(fpr, tpr)
 	plt.plot([0, 1], [0, 1], color='navy', linestyle='--')
@@ -109,11 +231,12 @@ def main():
 
 	train_data, test_data, train_labels, test_labels = train_test_split(x, y, test_size = 0.2, random_state = CONST_RANDOM_SEED)
 
-	print 'Data loaded'
+	# print 'Data loaded'
 
-	scaler, classifier = FitModel(train_data, train_labels)
+	# scaler, classifier = FitModel(train_data, train_labels)
 	# TestModel(test_data, test_labels, scaler, classifier)
 	# roc_statistics(test_data, test_labels, scaler, classifier)
+	plot_learning_curves_AUC(train_data, train_labels)
 
 if __name__ == '__main__':
 	main()

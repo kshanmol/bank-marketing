@@ -1,1 +1,0 @@
-{'base_estimator__activation': 'relu', 'base_estimator__solver': 'adam', 'base_estimator__early_stopping': True, 'base_estimator__hidden_layer_sizes': (11, 11), 'n_estimators': 7, 'base_estimator__learning_rate_init': 0.01, 'random_state': 42, 'base_estimator__random_state': 42}
