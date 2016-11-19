@@ -1,1 +1,15 @@
+//Adaptive, with early stopping
+0.905 (+/-0.005) for {'base_estimator__activation': 'relu', 'base_estimator__solver': 'sgd', 'base_estimator__early_stopping': True, 'base_estimator__hidden_layer_sizes': (6, 6), 'n_estimators': 7, 'base_estimator__learning_rate_init': 0.1, 'random_state': 42, 'base_estimator__learning_rate': 'adaptive', 'base_estimator__random_state': 42}
+0.906 (+/-0.003) for {'base_estimator__activation': 'relu', 'base_estimator__solver': 'sgd', 'base_estimator__early_stopping': True, 'base_estimator__hidden_layer_sizes': (11, 11), 'n_estimators': 7, 'base_estimator__learning_rate_init': 0.1, 'random_state': 42, 'base_estimator__learning_rate': 'adaptive', 'base_estimator__random_state': 42}
+{'base_estimator__activation': 'relu', 'base_estimator__solver': 'sgd', 'base_estimator__early_stopping': True, 'base_estimator__hidden_layer_sizes': (11, 11), 'n_estimators': 7, 'base_estimator__learning_rate_init': 0.1, 'random_state': 42, 'base_estimator__learning_rate': 'adaptive', 'base_estimator__random_state': 42}
+
+//Adaptive, without early stopping
+0.908 (+/-0.003) for {'base_estimator__activation': 'relu', 'base_estimator__solver': 'sgd', 'base_estimator__early_stopping': False, 'base_estimator__hidden_layer_sizes': (6, 6), 'n_estimators': 7, 'base_estimator__learning_rate_init': 0.1, 'random_state': 42, 'base_estimator__learning_rate': 'adaptive', 'base_estimator__random_state': 42}
+0.906 (+/-0.005) for {'base_estimator__activation': 'relu', 'base_estimator__solver': 'sgd', 'base_estimator__early_stopping': False, 'base_estimator__hidden_layer_sizes': (11, 11), 'n_estimators': 7, 'base_estimator__learning_rate_init': 0.1, 'random_state': 42, 'base_estimator__learning_rate': 'adaptive', 'base_estimator__random_state': 42}
+{'base_estimator__activation': 'relu', 'base_estimator__solver': 'sgd', 'base_estimator__early_stopping': False, 'base_estimator__hidden_layer_sizes': (6, 6), 'n_estimators': 7, 'base_estimator__learning_rate_init': 0.1, 'random_state': 42, 'base_estimator__learning_rate': 'adaptive', 'base_estimator__random_state': 42}
+
+//Whatever
 {'base_estimator__activation': 'relu', 'base_estimator__solver': 'adam', 'base_estimator__early_stopping': True, 'base_estimator__hidden_layer_sizes': (11, 11), 'n_estimators': 7, 'base_estimator__learning_rate_init': 0.01, 'random_state': 42, 'base_estimator__random_state': 42}
+
+
+

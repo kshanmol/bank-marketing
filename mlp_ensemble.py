@@ -29,11 +29,12 @@ def FitModel(train_data, train_labels, cross_val_splits = 5, random_seed = CONST
 	if do_grid_search:
 		param_grid = [ {# 'alpha': map(lambda x: (10 ** x), range(-1,0)),
 						'base_estimator__activation': ['relu'],
-						'base_estimator__solver': ['adam'],
-						'base_estimator__hidden_layer_sizes':[(6,6), (11,11)],
-						'base_estimator__learning_rate_init':[0.1, 1],
+						'base_estimator__solver': ['sgd'],
+						'base_estimator__hidden_layer_sizes':[(4,4), (6,6), (11,11)],
+						'base_estimator__learning_rate_init':[0.1],
 						'base_estimator__random_state':[random_seed],
 						'base_estimator__early_stopping':[True],
+						'base_estimator__learning_rate':['adaptive'], 
 						'n_estimators':[7],
 						'random_state':[random_seed]
 		}]
@@ -50,7 +51,7 @@ def FitModel(train_data, train_labels, cross_val_splits = 5, random_seed = CONST
 
 		bagging = clf.best_estimator_
 		bagging.fit(train_data, train_labels)
-		joblib.dump(bagging, './models/mlp_ensemble.model')
+#		joblib.dump(bagging, './models/mlp_ensemble.model')
 	else:
 		if(retrain):
 			clf = MLPClassifier(activation = 'relu', solver='lbfgs', hidden_layer_sizes=(11,11), learning_rate_init = 0.1, random_state = random_seed)
