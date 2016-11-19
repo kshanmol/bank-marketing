@@ -97,7 +97,7 @@ def TestModel(test_data, test_labels, scaler, model):
 
 	return accuracy
 
-def roc_statistics(test_data, test_labels, scaler, model):
+def roc_statistics(test_data, test_labels, scaler, model, plot = False):
 
 	test_data = scaler.transform(test_data)
 
@@ -108,19 +108,21 @@ def roc_statistics(test_data, test_labels, scaler, model):
 	
 	# print fpr.tolist()
 	# print tpr.tolist()
-	plt.figure()
-	plt.plot(fpr, tpr)
-	plt.plot([0, 1], [0, 1], color = 'navy', linestyle = '--')
-	plt.xlim([0.0, 1.0])
-	plt.ylim([0.0, 1.05])
-	plt.xlabel('False Positive Rate')
-	plt.ylabel('True Positive Rate')
-	plt.title('Receiver operating characteristic example')
-	plt.legend(loc = "lower right")
-	plt.show()
+	if (plot == True):
+		plt.figure()
+		plt.plot(fpr, tpr)
+		plt.plot([0, 1], [0, 1], color = 'navy', linestyle = '--')
+		plt.xlim([0.0, 1.0])
+		plt.ylim([0.0, 1.05])
+		plt.xlabel('False Positive Rate')
+		plt.ylabel('True Positive Rate')
+		plt.title('Receiver operating characteristic')
+		plt.legend(loc = "lower right")
+		plt.show()
 
+	return fpr, tpr
 
-def plot_learning_curves(data, labels, n_folds = 5, random_seed = CONST_RANDOM_SEED):
+def plot_learning_curves(data, labels, mode = 'auc', n_folds = 5, random_seed = CONST_RANDOM_SEED):
 	data_perc, train_scores, cv_scores = [], [], []
 
 	for train_data_perc in (map(lambda x: 2 ** x, range(-2, 7, 1)) + [100]):
@@ -143,10 +145,12 @@ def plot_learning_curves(data, labels, n_folds = 5, random_seed = CONST_RANDOM_S
 			classifier = SVC(**opt_hyperparameters)
 			classifier.fit(X_train, y_train)
 
-			train_score += classifier.score(X_train, y_train)
-			cv_score += classifier.score(X_test, y_test)
-			# train_score += roc_auc_score(y_train, classifier.decision_function(X_train))
-			# cv_score += roc_auc_score(y_test, classifier.decision_function(X_test))
+			if (mode == 'error'):
+				train_score += classifier.score(X_train, y_train)
+				cv_score += classifier.score(X_test, y_test)
+			elif (mode == 'auc'):
+				train_score += roc_auc_score(y_train, classifier.decision_function(X_train))
+				cv_score += roc_auc_score(y_test, classifier.decision_function(X_test))
 
 		cv_score /= n_folds
 		train_score /= n_folds
@@ -154,31 +158,23 @@ def plot_learning_curves(data, labels, n_folds = 5, random_seed = CONST_RANDOM_S
 		data_perc.append(train_data_perc)
 		cv_scores.append(cv_score)
 		train_scores.append(train_score)
-
-	# data_perc = (map(lambda x: 2 ** x, range(-2, 7, 1)) + [100])
-	# cv_scores.append(0.848379120879), train_scores.append(0.987995583819)
-	# cv_scores.append(0.809660815939), train_scores.append(0.989605814979)
-	# cv_scores.append(0.822855424192), train_scores.append(0.952971463266)
-	# cv_scores.append(0.853137198351), train_scores.append(0.927608260069)
-	# cv_scores.append(0.885559790098), train_scores.append(0.934622168995)
-	# cv_scores.append(0.896031848827), train_scores.append(0.923740420835)
-	# cv_scores.append(0.896385374271), train_scores.append(0.923535015858)
-	# cv_scores.append(0.906059313633), train_scores.append(0.927964957847)
-	# cv_scores.append(0.913662479221), train_scores.append(0.926304196355)
-	# cv_scores.append(0.918569764839), train_scores.append(0.926738685065)
 		
-	cv_scores = map(lambda x: 1 - x, cv_scores)
-	train_scores = map(lambda x: 1 - x, train_scores)
+	if (mode == 'error'):
+		cv_scores = map(lambda x: 1 - x, cv_scores)
+		train_scores = map(lambda x: 1 - x, train_scores)
 
 	plt.figure()
-	plt.plot(data_perc, cv_scores, label = "CV-Error")
-	plt.plot(data_perc, train_scores, label = "Training Error")
-	# plt.plot(data_perc, cv_scores, label = "CV AUROC")
-	# plt.plot(data_perc, train_scores, label = "Training AUROC")
-	plt.ylim([0.05, 0.2])
+	if (mode == 'error'):
+		plt.plot(data_perc, cv_scores, label = "CV-Error")
+		plt.plot(data_perc, train_scores, label = "Training Error")
+		plt.ylim([0.05, 0.2])
+		plt.ylabel('Classification Error')	
+	elif (mode == 'auc'):
+		plt.plot(data_perc, cv_scores, label = "CV AUROC")
+		plt.plot(data_perc, train_scores, label = "Training AUROC")
+		plt.ylabel('AUROC')
+
 	plt.xlabel('Training Data Percentage')
-	plt.ylabel('Classification Error')
-	# plt.ylabel('AUROC')
 	plt.title('Learning Curve')
 	plt.legend(loc = 'lower right')
 	plt.show()
@@ -193,12 +189,12 @@ if __name__ == '__main__':
 
 	train_data, test_data, train_labels, test_labels = train_test_split(x, y, test_size = 0.2, random_state = CONST_RANDOM_SEED)
 
-	# # print len(train_data[0]), len(test_data[0])
-	scaler, classifier = FitModel(train_data, train_labels)
+	# # # print len(train_data[0]), len(test_data[0])
+	# scaler, classifier = FitModel(train_data, train_labels)
 
-	# print classifier
-	TestModel(test_data, test_labels, scaler, classifier)
+	# # print classifier
+	# TestModel(test_data, test_labels, scaler, classifier)
 
-	roc_statistics(test_data, test_labels, scaler, classifier)
+	# roc_statistics(test_data, test_labels, scaler, classifier)
 
-	# plot_learning_curves(train_data, train_labels)
+	plot_learning_curves(train_data, train_labels, mode = 'error')

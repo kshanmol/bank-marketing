@@ -200,28 +200,31 @@ def plot_learning_curves_AUC(data, labels, n_folds = 5, random_seed = CONST_RAND
 	plt.legend(loc = 'lower right')
 	plt.show()
 
-def roc_statistics(test_data, test_labels, scaler, model):
+def roc_statistics(test_data, test_labels, scaler, model, plot = False):
 
 	test_data = scaler.transform(test_data)
 
 	fpr, tpr, thresholds = roc_curve(test_labels, model.predict_proba(test_data)[:,1])
 
 	# print "AUROC:", auc(fpr, tpr)
-#	print "ROC AUC SCORE: ", roc_auc_score(test_labels, model.predict_proba(test_data)[:,1])
+	# print "ROC AUC SCORE: ", roc_auc_score(test_labels, model.predict_proba(test_data)[:,1])
 	
 	print fpr.tolist()
 	print tpr.tolist()
 
-	plt.figure()
-	plt.plot(fpr, tpr)
-	plt.plot([0, 1], [0, 1], color='navy', linestyle='--')
-	plt.xlim([0.0, 1.0])
-	plt.ylim([0.0, 1.05])
-	plt.xlabel('False Positive Rate')
-	plt.ylabel('True Positive Rate')
-	plt.title('Receiver operating characteristic example')
-	plt.legend(loc="lower right")
-	plt.show()
+	if (plot == True):
+		plt.figure()
+		plt.plot(fpr, tpr)
+		plt.plot([0, 1], [0, 1], color='navy', linestyle='--')
+		plt.xlim([0.0, 1.0])
+		plt.ylim([0.0, 1.05])
+		plt.xlabel('False Positive Rate')
+		plt.ylabel('True Positive Rate')
+		plt.title('Receiver operating characteristic')
+		plt.legend(loc="lower right")
+		plt.show()
+
+	return fpr, tpr
 
 def main():
 
