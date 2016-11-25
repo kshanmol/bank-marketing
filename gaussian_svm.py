@@ -53,7 +53,7 @@ def FitModel(train_data, train_labels, n_folds = 5, random_seed = CONST_RANDOM_S
 
 	# print best_classifier.best_score_
 
-	opt_hyperparameters = {'kernel': 'rbf', 'C': 1, 'random_state': 42, 'gamma': 0.00390625, 'class_weight': {0: 1, 1: 4}}
+	opt_hyperparameters = {'kernel': 'rbf', 'C': 2, 'gamma': 0.001953125, 'random_state': 42}
 
 	classifier = SVC(**opt_hyperparameters)
 	classifier.fit(train_data, train_labels)
@@ -140,7 +140,7 @@ def plot_learning_curves(data, labels, mode = 'auc', n_folds = 5, random_seed = 
 			X_train, X_test = train_data[train_index], train_data[test_index]
 			y_train, y_test = train_labels[train_index], train_labels[test_index]
 
-			opt_hyperparameters = {'kernel': 'rbf', 'C': 1, 'random_state': 42, 'gamma': 0.00390625, 'class_weight': {0: 1, 1: 4}}
+			opt_hyperparameters = {'kernel': 'rbf', 'C': 2, 'gamma': 0.001953125, 'random_state': 42}
 
 			classifier = SVC(**opt_hyperparameters)
 			classifier.fit(X_train, y_train)
@@ -189,12 +189,12 @@ if __name__ == '__main__':
 
 	train_data, test_data, train_labels, test_labels = train_test_split(x, y, test_size = 0.2, random_state = CONST_RANDOM_SEED)
 
-	# # # print len(train_data[0]), len(test_data[0])
-	# scaler, classifier = FitModel(train_data, train_labels)
+	# # print len(train_data[0]), len(test_data[0])
+	scaler, classifier = FitModel(train_data, train_labels)
 
 	# # print classifier
 	# TestModel(test_data, test_labels, scaler, classifier)
 
 	# roc_statistics(test_data, test_labels, scaler, classifier)
 
-	plot_learning_curves(train_data, train_labels, mode = 'error')
+	# plot_learning_curves(train_data, train_labels, mode = 'auc')

@@ -29,6 +29,7 @@ def FitModel(train_data, train_labels, n_folds = 5, random_seed = CONST_RANDOM_S
 	# 	{'C': map(lambda x: 2 ** x, range(-15, 2)), 'max_iter': [max_iter],
 	# 		'dual': [False], 'random_state': [random_seed], 'loss': ['squared_hinge'] }
 	# ]
+	# best_classifier = GridSearchCV(estimator = LinearSVC(), param_grid = param_grid, cv = n_folds, scoring = 'roc_auc', verbose = 2, n_jobs = 4)
 
 	# # if using LinearSVC with class weights
 	# class_weights = []
@@ -39,8 +40,8 @@ def FitModel(train_data, train_labels, n_folds = 5, random_seed = CONST_RANDOM_S
 	# 	{'C': map(lambda x: 2 ** x, range(-15, -7)), 'max_iter': [max_iter],
 	# 		'dual': [False], 'random_state': [random_seed], 'loss': ['squared_hinge'], 'class_weight': class_weights }
 	# ]
+	# best_classifier = GridSearchCV(estimator = LinearSVC(), param_grid = param_grid, cv = n_folds, verbose = 2, n_jobs = 4)
 
-	# best_classifier = GridSearchCV(estimator = LinearSVC(), param_grid = param_grid, cv = n_folds, scoring = 'roc_auc', verbose = 2, n_jobs = 4)
 	# best_classifier.fit(train_data, train_labels)
 
 	# C = map(lambda x: 2 ** x, range(-5, 5))
@@ -52,7 +53,7 @@ def FitModel(train_data, train_labels, n_folds = 5, random_seed = CONST_RANDOM_S
 
 	# print best_classifier.best_score_
 	
-	opt_hyperparameters = {'loss': 'squared_hinge', 'C': 0.000244140625, 'max_iter': 1000, 'random_state': 42, 'dual': False, 'class_weight': {0: 1, 1: 4}}
+	opt_hyperparameters = {'loss': 'squared_hinge', 'C': 0.0009765625, 'max_iter': 1000, 'random_state': 42, 'dual': False}
 
 	classifier = LinearSVC(**opt_hyperparameters)
 	classifier.fit(train_data, train_labels)
@@ -140,7 +141,7 @@ def plot_learning_curves(data, labels, mode = 'auc', n_folds = 5, random_seed = 
 			X_train, X_test = train_data[train_index], train_data[test_index]
 			y_train, y_test = train_labels[train_index], train_labels[test_index]
 
-			opt_hyperparameters = {'loss': 'squared_hinge', 'C': 0.000244140625, 'max_iter': 1000, 'random_state': 42, 'dual': False, 'class_weight': {0: 1, 1: 4}}
+			opt_hyperparameters = {'loss': 'squared_hinge', 'C': 0.0009765625, 'max_iter': 1000, 'random_state': 42, 'dual': False}
 
 			classifier = LinearSVC(**opt_hyperparameters)
 			classifier.fit(X_train, y_train)
@@ -190,11 +191,11 @@ if __name__ == '__main__':
 	train_data, test_data, train_labels, test_labels = train_test_split(x, y, test_size = 0.2, random_state = CONST_RANDOM_SEED)
 
 	# # print len(train_data[0]), len(test_data[0])
-	# scaler, classifier = FitModel(train_data, train_labels)
+	scaler, classifier = FitModel(train_data, train_labels)
 
-	# # print classifier
+	# print classifier
 	# TestModel(test_data, test_labels, scaler, classifier)
 
 	# roc_statistics(test_data, test_labels, scaler, classifier)
 
-	plot_learning_curves(train_data, train_labels, mode = 'error')
+	# plot_learning_curves(train_data, train_labels, mode = 'auc')
