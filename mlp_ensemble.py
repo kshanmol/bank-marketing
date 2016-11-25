@@ -14,6 +14,8 @@ from sklearn.model_selection import train_test_split
 from sklearn.metrics import roc_curve, auc, roc_auc_score
 from sklearn.cross_validation import KFold
 
+from imblearn.under_sampling import RandomUnderSampler
+
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -36,6 +38,7 @@ def plot_confusion_matrix(cf_mat, classes, title):
     plt.tight_layout()
     plt.ylabel('True label')
     plt.xlabel('Predicted label')
+
 
 
 def FitModel(train_data, train_labels, cross_val_splits = 5, random_seed = CONST_RANDOM_SEED, max_iter = 1000, do_grid_search = False, retrain = False):
@@ -198,7 +201,8 @@ def plot_learning_curves(data, labels, n_folds = 5, random_seed = CONST_RANDOM_S
 def plot_learning_curves_AUC(data, labels, n_folds = 5, random_seed = CONST_RANDOM_SEED):
 	data_perc, train_scores, cv_scores = [], [], []
 
-	train_percs = map(lambda x: 2 ** x, range(-2, 7, 1))
+	#train_percs = map(lambda x: 2 ** x, range(3, 7, 1))
+	train_percs = []
 	train_percs.append(100)
 
 	for train_data_perc in train_percs:
@@ -252,15 +256,27 @@ def plot_learning_curves_AUC(data, labels, n_folds = 5, random_seed = CONST_RAND
 
 def main():
 
+	
+	undersample = True
+	print "Undersampling on? : ", undersample 
+
 	file_name = os.path.join(os.path.dirname(__file__), 'data/'+ 'transformed-bank-full.csv')
 
 	x, y = get_data.process(file_name)
 
 	train_data, test_data, train_labels, test_labels = train_test_split(x, y, test_size = 0.2, random_state = CONST_RANDOM_SEED)
 
+	print len(train_data), len(test_data)
+
+	rus = RandomUnderSampler()
+	if(undersample == True):
+		train_data, train_labels = rus.fit_sample(train_data, train_labels)
+	
+	print len(train_data), len(test_data)
+
 	# print 'Data loaded'
 
-	# scaler, classifier = FitModel(train_data, train_labels)
+	scaler, classifier = FitModel(train_data, train_labels)
 	# TestModel(test_data, test_labels, scaler, classifier)
 	# roc_statistics(test_data, test_labels, scaler, classifier)
 	plot_learning_curves_AUC(train_data, train_labels)
