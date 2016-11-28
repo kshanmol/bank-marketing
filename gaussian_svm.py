@@ -9,6 +9,7 @@ from sklearn.svm import SVC
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import roc_curve, auc, roc_auc_score, confusion_matrix
 from sklearn.cross_validation import KFold
+from imblearn.under_sampling import RandomUnderSampler
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -17,7 +18,7 @@ import get_data
 
 CONST_RANDOM_SEED = 42
 
-def FitModel(train_data, train_labels, n_folds = 5, random_seed = CONST_RANDOM_SEED, max_iter = 1000):
+def FitModel(train_data, train_labels, n_folds = 5, random_seed = CONST_RANDOM_SEED, max_iter = 1000, undersampled = False):
 
 	random.seed(random_seed)
 
@@ -26,8 +27,8 @@ def FitModel(train_data, train_labels, n_folds = 5, random_seed = CONST_RANDOM_S
 
 	# # if using SVC
 	# param_grid = [
-	# 	{'C': map(lambda x: 2 ** x, range(1, 8)), 'kernel': ['rbf'], 
-	# 		'gamma': map(lambda x: 2 ** x, range(-14, -4))}
+	# 	{'C': map(lambda x: 2 ** x, range(1, 5)), 'kernel': ['rbf'], 
+	# 		'gamma': map(lambda x: 2 ** x, range(-10, -4))}
 	# ]
 
 	# # if using SVC with class weights
@@ -49,11 +50,15 @@ def FitModel(train_data, train_labels, n_folds = 5, random_seed = CONST_RANDOM_S
 	# print best_classifier.cv_results_['mean_test_score']
 	
 	# opt_hyperparameters = best_classifier.best_params_
-	# print opt_hyperparameters
 
 	# print best_classifier.best_score_
 
-	opt_hyperparameters = {'kernel': 'rbf', 'C': 2, 'gamma': 0.001953125, 'random_state': 42}
+	if not undersampled:
+		opt_hyperparameters = {'kernel': 'rbf', 'C': 2, 'gamma': 0.001953125, 'random_state': 42}
+	else:
+		opt_hyperparameters = {'kernel': 'rbf', 'C': 4, 'gamma': 0.0078125, 'random_state': 42}
+
+	print opt_hyperparameters
 
 	classifier = SVC(**opt_hyperparameters)
 	classifier.fit(train_data, train_labels)
@@ -93,6 +98,9 @@ def TestModel(test_data, test_labels, scaler, model):
 
 	accuracy = model.score(test_data, test_labels)
 
+	roc_auc = roc_auc_score(test_labels, model.decision_function(test_data))
+	print "AUROC :", roc_auc
+
 	print "Accuracy :", accuracy 
 
 	return accuracy
@@ -122,10 +130,18 @@ def roc_statistics(test_data, test_labels, scaler, model, plot = False):
 
 	return fpr, tpr
 
-def plot_learning_curves(data, labels, mode = 'auc', n_folds = 5, random_seed = CONST_RANDOM_SEED):
+def plot_learning_curves(data, labels, mode = 'auc', n_folds = 5, random_seed = CONST_RANDOM_SEED, undersampled = False):
 	data_perc, train_scores, cv_scores = [], [], []
 
-	for train_data_perc in (map(lambda x: 2 ** x, range(-2, 7, 1)) + [100]):
+	train_percs = range(10, 110, 10)
+
+	train_set = [(a,b) for a,b in zip(data, labels)]
+	random.shuffle(train_set)
+	data = [a[0] for a in train_set]
+	labels = [a[1] for a in train_set]
+
+	# for train_data_perc in (map(lambda x: 2 ** x, range(-2, 7, 1)) + [100]):
+	for train_data_perc in (train_percs):
 		cv_score, train_score = 0, 0
 		train_data = data[: int((len(data) * train_data_perc) / 100)]
 		train_labels = labels[: int((len(labels) * train_data_perc) / 100)]
@@ -140,7 +156,10 @@ def plot_learning_curves(data, labels, mode = 'auc', n_folds = 5, random_seed = 
 			X_train, X_test = train_data[train_index], train_data[test_index]
 			y_train, y_test = train_labels[train_index], train_labels[test_index]
 
-			opt_hyperparameters = {'kernel': 'rbf', 'C': 2, 'gamma': 0.001953125, 'random_state': 42}
+			if not undersampled:
+				opt_hyperparameters = {'kernel': 'rbf', 'C': 2, 'gamma': 0.001953125, 'random_state': 42}
+			else:
+				opt_hyperparameters = {'kernel': 'rbf', 'C': 4, 'gamma': 0.0078125, 'random_state': 42}
 
 			classifier = SVC(**opt_hyperparameters)
 			classifier.fit(X_train, y_train)
@@ -182,6 +201,8 @@ def plot_learning_curves(data, labels, mode = 'auc', n_folds = 5, random_seed = 
 if __name__ == '__main__':
 
 	random.seed(CONST_RANDOM_SEED)
+	undersample = True
+	print "Undersampling on? : ", undersample 
 
 	file_name = os.path.join(os.path.dirname(__file__), 'data/'+ 'transformed-bank-full.csv')
 
@@ -189,12 +210,30 @@ if __name__ == '__main__':
 
 	train_data, test_data, train_labels, test_labels = train_test_split(x, y, test_size = 0.2, random_state = CONST_RANDOM_SEED)
 
-	# # print len(train_data[0]), len(test_data[0])
-	scaler, classifier = FitModel(train_data, train_labels)
 
-	# # print classifier
+	rus = RandomUnderSampler(random_state = CONST_RANDOM_SEED)
+	if(undersample == True):
+		train_data, train_labels = rus.fit_sample(train_data, train_labels)
+
+	d = {}
+	for i in test_labels:
+		if i in d:
+			d[i] += 1
+		else:
+			d[i] = 1
+
+	print d
+
+	print train_labels
+
+	print len(train_data), len(test_data)
+	
+	# scaler, classifier = FitModel(train_data, train_labels, undersampled = undersample)
+
+
+	# print classifier
 	# TestModel(test_data, test_labels, scaler, classifier)
 
 	# roc_statistics(test_data, test_labels, scaler, classifier)
 
-	# plot_learning_curves(train_data, train_labels, mode = 'auc')
+	plot_learning_curves(train_data, train_labels, mode = 'auc', undersampled = undersample)

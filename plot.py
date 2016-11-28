@@ -20,11 +20,16 @@ from sklearn.cross_validation import KFold
 import numpy as np
 import matplotlib.pyplot as plt
 
+from imblearn.under_sampling import RandomUnderSampler
+
+
 CONST_RANDOM_SEED = 42
 
 if __name__ == '__main__':
 
 	random.seed(CONST_RANDOM_SEED)
+
+	undersample = True
 
 	file_name = os.path.join(os.path.dirname(__file__), 'data/'+ 'transformed-bank-full.csv')
 
@@ -32,27 +37,44 @@ if __name__ == '__main__':
 
 	train_data, test_data, train_labels, test_labels = train_test_split(x, y, test_size = 0.2, random_state = CONST_RANDOM_SEED)
 
-	scaler, model = linear_svm.FitModel(train_data, train_labels, random_seed = CONST_RANDOM_SEED)
+	rus = RandomUnderSampler(random_state = CONST_RANDOM_SEED)
+	if(undersample == True):
+		train_data, train_labels = rus.fit_sample(train_data, train_labels)
+	
+	# scaler, model = linear_svm.FitModel(train_data, train_labels, random_seed = CONST_RANDOM_SEED)
+	# linear_svm_fpr, linear_svm_tpr = linear_svm.roc_statistics(test_data, test_labels, scaler, model)
+	# print "linear svm done"
+
+	# scaler, model = gaussian_svm.FitModel(train_data, train_labels, random_seed = CONST_RANDOM_SEED)
+	# gaussian_svm_fpr, gaussian_svm_tpr = gaussian_svm.roc_statistics(test_data, test_labels, scaler, model)
+	# print "gaussian svm done"
+
+	# scaler, model = mlp.FitModel(train_data, train_labels, random_seed = CONST_RANDOM_SEED)
+	# mlp_fpr, mlp_tpr = mlp.roc_statistics(test_data, test_labels, scaler, model)
+	# print "mlp done"
+
+	# scaler, model = mlp_ensemble.FitModel(train_data, train_labels, random_seed = CONST_RANDOM_SEED)
+	# mlp_ensemble_fpr, mlp_ensemble_tpr = mlp_ensemble.roc_statistics(test_data, test_labels, scaler, model)
+	# print "mlp ensemble done"
+
+	scaler, model = linear_svm.FitModel(train_data, train_labels, random_seed = CONST_RANDOM_SEED, undersampled = undersample)
 	linear_svm_fpr, linear_svm_tpr = linear_svm.roc_statistics(test_data, test_labels, scaler, model)
 	print "linear svm done"
 
-	scaler, model = gaussian_svm.FitModel(train_data, train_labels, random_seed = CONST_RANDOM_SEED)
+	scaler, model = gaussian_svm.FitModel(train_data, train_labels, random_seed = CONST_RANDOM_SEED, undersampled = undersample)
 	gaussian_svm_fpr, gaussian_svm_tpr = gaussian_svm.roc_statistics(test_data, test_labels, scaler, model)
 	print "gaussian svm done"
 
-	scaler, model = mlp.FitModel(train_data, train_labels, random_seed = CONST_RANDOM_SEED)
-	mlp_fpr, mlp_tpr = mlp.roc_statistics(test_data, test_labels, scaler, model)
-	print "mlp done"
-
-	scaler, model = mlp_ensemble.FitModel(train_data, train_labels, random_seed = CONST_RANDOM_SEED)
+	scaler, model = mlp_ensemble.FitModel(train_data, train_labels, random_seed = CONST_RANDOM_SEED, undersampled = undersample)
 	mlp_ensemble_fpr, mlp_ensemble_tpr = mlp_ensemble.roc_statistics(test_data, test_labels, scaler, model)
 	print "mlp ensemble done"
 
+
 plt.figure()
-plt.plot(mlp_fpr, mlp_tpr, label = "Single MLP")
-plt.plot(mlp_ensemble_fpr, mlp_ensemble_tpr, label = "Ensemble of MLPs (Bagging)")
-plt.plot(linear_svm_fpr, linear_svm_tpr, label = "SVM with linear kernel")
-plt.plot(gaussian_svm_fpr, gaussian_svm_tpr, label = "SVM with gaussian kernel")
+# plt.plot(mlp_fpr, mlp_tpr, label = "Single MLP")
+plt.plot(mlp_ensemble_fpr, mlp_ensemble_tpr, label = "Ensemble of MLPs (Bagging) (+Undersampling)")
+plt.plot(linear_svm_fpr, linear_svm_tpr, label = "SVM with linear kernel (+Undersampling)")
+plt.plot(gaussian_svm_fpr, gaussian_svm_tpr, label = "SVM with gaussian kernel (+Undersampling)")
 plt.plot([0, 1], [0, 1], color = 'navy', linestyle = '--')
 plt.xlim([0.0, 1.0])
 plt.ylim([0.0, 1.05])

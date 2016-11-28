@@ -41,7 +41,7 @@ def plot_confusion_matrix(cf_mat, classes, title):
 
 
 
-def FitModel(train_data, train_labels, cross_val_splits = 5, random_seed = CONST_RANDOM_SEED, max_iter = 1000, do_grid_search = False, retrain = False):
+def FitModel(train_data, train_labels, cross_val_splits = 5, random_seed = CONST_RANDOM_SEED, max_iter = 1000, do_grid_search = False, retrain = False, undersampled = False):
 
 	scaler = StandardScaler(); scaler.fit(train_data)
 	train_data = scaler.transform(train_data)
@@ -54,7 +54,7 @@ def FitModel(train_data, train_labels, cross_val_splits = 5, random_seed = CONST
 						'base_estimator__activation': ['relu'],
 						'base_estimator__solver': ['sgd'],
 						'base_estimator__hidden_layer_sizes':[(6), (11), (6,6), (11,11), (11,6)],
-						'base_estimator__learning_rate_init':[0.1],
+						'base_estimator__learning_rate_init':[0.1, 0.01],
 						'base_estimator__random_state':[random_seed],
 						'base_estimator__early_stopping':[False],
 						'base_estimator__learning_rate':['adaptive'], 
@@ -77,6 +77,10 @@ def FitModel(train_data, train_labels, cross_val_splits = 5, random_seed = CONST
 #		joblib.dump(bagging, './models/mlp_ensemble.model')
 	else:
 		if(retrain):
+
+			# Note. It so happened that the optimal parameters for both 
+			# turned out to be the same.
+
 			opt_hyperparameters = {'activation': 'relu', 
 			'solver': 'sgd', 
 			'early_stopping': False, 
@@ -88,9 +92,15 @@ def FitModel(train_data, train_labels, cross_val_splits = 5, random_seed = CONST
 			clf = MLPClassifier(**opt_hyperparameters)
 			bagging = BaggingClassifier(clf, n_estimators = 7, random_state = random_seed)
 			bagging.fit(train_data, train_labels)
-			joblib.dump(clf, './models/mlp_ensemble.model')
+			if(undersampled):
+				joblib.dump(clf, './models/mlp_ensemble_us.model')
+			else:
+				joblib.dump(clf, './models/mlp_ensemble.model')
 		else:
-			bagging = joblib.load('./models/mlp_ensemble.model')
+			if(undersampled):
+				bagging = joblib.load('./models/mlp_ensemble_us.model')
+			else:
+				bagging = joblib.load('./models/mlp_ensemble.model')
 
 	return scaler, bagging
 
@@ -101,6 +111,8 @@ def TestModel(test_data, test_labels, scaler, model):
 	accuracy = model.score(test_data, test_labels)
 
 	print "Accuracy :", accuracy 
+	roc_auc = roc_auc_score(test_labels, model.predict_proba(test_data)[:,1])
+	print "AUROC :", roc_auc
 
 	predicted = model.predict(test_data)
 	cf_mat = np.array(confusion_matrix(test_labels, predicted))
@@ -141,11 +153,14 @@ def roc_statistics(test_data, test_labels, scaler, model, plot = False):
 
 	return fpr, tpr
 
-def plot_learning_curves(data, labels, n_folds = 5, random_seed = CONST_RANDOM_SEED):
+def plot_learning_curves(data, labels, n_folds = 5, random_seed = CONST_RANDOM_SEED, undersampled = False):
 	data_perc, train_scores, cv_scores = [], [], []
 
-	train_percs = map(lambda x: 2 ** x, range(-2, 7, 1))
-	train_percs.append(100)
+	if(not undersampled):
+		train_percs = map(lambda x: 2 ** x, range(-2, 7, 1))
+		train_percs.append(100)
+	else:
+		train_percs = range(10, 110, 10)
 
 	for train_data_perc in train_percs:
 		cv_score, train_score = 0, 0
@@ -162,6 +177,7 @@ def plot_learning_curves(data, labels, n_folds = 5, random_seed = CONST_RANDOM_S
 			X_train, X_test = train_data[train_index], train_data[test_index]
 			y_train, y_test = train_labels[train_index], train_labels[test_index]
 
+			# Same for both undersampled and normal
 			opt_hyperparameters = {'activation': 'relu', 
 			'solver': 'sgd', 
 			'early_stopping': False, 
@@ -198,17 +214,30 @@ def plot_learning_curves(data, labels, n_folds = 5, random_seed = CONST_RANDOM_S
 	plt.legend(loc = 'lower right')
 	plt.show()
 
-def plot_learning_curves_AUC(data, labels, n_folds = 5, random_seed = CONST_RANDOM_SEED):
+def plot_learning_curves_AUC(data, labels, n_folds = 5, random_seed = CONST_RANDOM_SEED, undersampled = False):
 	data_perc, train_scores, cv_scores = [], [], []
 
-	#train_percs = map(lambda x: 2 ** x, range(3, 7, 1))
-	train_percs = []
-	train_percs.append(100)
+	train_percs = range(10, 110, 10)
+
+	train_set = [(a,b) for a,b in zip(data, labels)]
+	random.shuffle(train_set)
+	data = [a[0] for a in train_set]
+	labels = [a[1] for a in train_set]
+
+	if(not undersampled):
+		train_percs = map(lambda x: 2 ** x, range(-2, 7, 1))
+		train_percs.append(100)
+	else:
+		train_percs = range(10, 110, 10)
+		#train_percs = [60,70,80,90,100]
 
 	for train_data_perc in train_percs:
 		cv_score, train_score = 0, 0
 		train_data = data[: int(len(data) * train_data_perc) / 100]
 		train_labels = labels[: int(len(labels) * train_data_perc) / 100]
+
+		# train_data = data[: train_data_perc]
+		# train_labels = labels[: train_data_perc]
 
 		scaler = StandardScaler(); scaler.fit(train_data)
 		train_data = scaler.transform(train_data)
@@ -232,6 +261,9 @@ def plot_learning_curves_AUC(data, labels, n_folds = 5, random_seed = CONST_RAND
 
 			classifier = BaggingClassifier(base_classifier, n_estimators=7,random_state = random_seed)
 			classifier.fit(X_train, y_train)
+
+			print X_train.shape, y_train.shape
+			print classifier.predict_proba(X_train).shape
 
 			train_score += roc_auc_score(y_train, classifier.predict_proba(X_train)[:,1])
 			cv_score += roc_auc_score(y_test, classifier.predict_proba(X_test)[:,1])
@@ -266,20 +298,18 @@ def main():
 
 	train_data, test_data, train_labels, test_labels = train_test_split(x, y, test_size = 0.2, random_state = CONST_RANDOM_SEED)
 
-	print len(train_data), len(test_data)
+	# print len(train_data), len(test_data)
 
-	rus = RandomUnderSampler()
+	rus = RandomUnderSampler(random_state = CONST_RANDOM_SEED)
 	if(undersample == True):
 		train_data, train_labels = rus.fit_sample(train_data, train_labels)
 	
-	print len(train_data), len(test_data)
-
 	# print 'Data loaded'
 
-	scaler, classifier = FitModel(train_data, train_labels)
-	# TestModel(test_data, test_labels, scaler, classifier)
+	scaler, classifier = FitModel(train_data, train_labels, undersampled = undersample)
+	TestModel(test_data, test_labels, scaler, classifier)
 	# roc_statistics(test_data, test_labels, scaler, classifier)
-	plot_learning_curves_AUC(train_data, train_labels)
+	plot_learning_curves_AUC(train_data, train_labels, undersampled = undersample)
 
 if __name__ == '__main__':
 	main()

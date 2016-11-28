@@ -6,7 +6,7 @@ from sklearn.decomposition import PCA
 
 CONST_RANDOM_SEED = 42
 
-def process(dataset_file_name, shuffle = False):
+def process(dataset_file_name, shuffle = True):
 	x, y = [], []
 	data = []
 

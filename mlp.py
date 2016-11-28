@@ -236,10 +236,10 @@ def main():
 
 	# print 'Data loaded'
 
-	# scaler, classifier = FitModel(train_data, train_labels)
-	# TestModel(test_data, test_labels, scaler, classifier)
+	scaler, classifier = FitModel(train_data, train_labels)
+	TestModel(test_data, test_labels, scaler, classifier)
 	# roc_statistics(test_data, test_labels, scaler, classifier)
-	plot_learning_curves_AUC(train_data, train_labels)
+	# plot_learning_curves_AUC(train_data, train_labels)
 
 if __name__ == '__main__':
 	main()
